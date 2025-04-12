@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Locate a Socket</title>
+
+  <!-- Materialize CSS -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="teal darken-2">
+    <div class="nav-wrapper container">
+      <a href="#" class="brand-logo">Locate a Socket</a>
+      <ul class="right hide-on-med-and-down">
+        <li><a href="#find">Find Sockets</a></li>
+        <li><a href="#submit">Submit Location</a></li>
+        <li><a href="#about">About</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <div class="section center-align teal lighten-5" style="padding: 40px;">
+    <h4>Need to charge your laptop or phone?</h4>
+    <p>Find the nearest available power socket with ease!</p>
+    <a href="#find" class="btn-large teal darken-2">Get Started</a>
+  </div>
+
+  <!-- Find a Socket Form -->
+  <div class="container section" id="find">
+    <h5>Search for Sockets</h5>
+    <div class="row">
+      <form class="col s12">
+        <div class="input-field col s12">
+          <input id="location" type="text" class="validate">
+          <label for="location">Enter your location or building name</label>
+        </div>
+        <button class="btn teal darken-2" type="submit">Find Nearby Sockets</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Submit Socket Location -->
+  <div class="container section" id="submit">
+    <h5>Submit a New Socket Location</h5>
+    <div class="row">
+      <form class="col s12">
+        <div class="input-field col s12">
+          <input id="place" type="text" class="validate">
+          <label for="place">Place Name</label>
+        </div>
+        <div class="input-field col s12">
+          <textarea id="details" class="materialize-textarea"></textarea>
+          <label for="details">Details (e.g., number of sockets, location in building)</label>
+        </div>
+        <button class="btn teal darken-2" type="submit">Submit Location</button>
+      </form>
+    </div>
+  </div>
+  <div class="section" id="socket-cards">
+    <h5 class="center-align">Socket Locations</h5>
+  </div>
+  
+  <!-- Footer -->
+  <footer class="page-footer teal darken-2">
+    <div class="container center-align">
+      2025 Locate a Socket 
+    </div>
+  </footer>
+
+  <!-- Materialize JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script src="js/scripts.js"></script>
+</body>
+</html>
