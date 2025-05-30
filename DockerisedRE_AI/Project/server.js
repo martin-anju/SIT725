@@ -118,6 +118,14 @@ app.get("/api/user", (req, res) => {
   }
 });
 
+app.get('/api/student', (req, res) => {
+  res.json({
+    name: "Anju Martin Palakeel",
+    studentId: "s223563396"
+  });
+});
+
+
 app.get("/profile", (req, res) => {
   res.send(`Welcome ${req.user.displayName}`); // Show welcome message after login
 });
