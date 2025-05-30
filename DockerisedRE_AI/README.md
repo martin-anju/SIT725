@@ -2,23 +2,6 @@
 
 This project is a resume evaluation tool that leverages Google's Gemini AI to provide detailed feedback on resumes. Users can upload their resume (in PDF or Word format) along with a job description, and the system will analyze the resume against the job description. The feedback includes scores for technical skills, leadership qualities, and relevance, along with tailored recommendations to improve the resume.
 
-## Docker
-
-### Build
-docker build -t resume-ai:anjumartin .
-
-### Run
-docker run -d \
-  --name resume-ai-container \
-  -p 3002:3002 \
-  --env-file .env \
-  -e MONGODB_URI="mongodb://host.docker.internal:27017/resumeAI" \
-  resume-ai:anjumartin
-
-### Test
-curl http://localhost:3002/api/student
-
-
 ### Socket Programming
 
 This version of the project integrates Socket.IO to enable real-time notifications. When the backend completes processing the resume feedback, it sends a notification to the frontend to inform the user that the feedback is ready. This enhances the user experience by providing instant updates without requiring the user to refresh the page.
@@ -32,6 +15,8 @@ MONGODB_URI=<your-mongodb-uri>
 MONGO_USER=<your-mongodb-username>
 MONGO_PASSWORD=<your-mongodb-password>
 GENAI_API_KEY=<your-genai-api-key>
+GOOGLE_CLIENT_ID=<your-google-client-id>
+GOOGLE_CLIENT_SECRET=<your-google-client-secret>
 ```
 
 ### Installation and Setup
@@ -80,9 +65,15 @@ GENAI_API_KEY=<your-genai-api-key>
 SIT725/
 ├── controllers/
 │   ├── resumeController.js      # Handles resume-related logic
-│   └── jobController.js         # Handles job description-related logic
+│   |── jobController.js         # Handles job description-related logic
+|   |── resumeController.js      # Handles resume logic
+|   └── userController.js        # Handles user logic
+|
 ├── db/
 │   └── mongoConnection.js       # MongoDB connection logic
+|   |── feebackSessionDB.js      # feedback session schema
+|   └── userDB.js                # user schema
+|
 ├── models/
 │   ├── resumeModel.js           # Handles resume database operations
 │   └── jobModel.js              # Handles job description database operations
@@ -96,11 +87,13 @@ SIT725/
 │   │   ├── main.js              # Main frontend logic
 │   │   ├── feedback.js          # Handles feedback functionality
 │   │   ├── chart.js             # Chart rendering logic
+|   |   |   sessions.js          # fetch/display feedback sessions
 │   │   ├── notification.js      # Handles Socket.IO notifications
 │   │   ├── upload.js            # Handles resume file upload
 │   └── index.html               # Frontend UI
 ├── routers/
 │   ├── resumeRoutes.js          # Defines API routes for resumes
+|   ├── feebackSessionRoutes.js  # Defines API routes for feebacks
 │   └── jobRoutes.js             # Defines API routes for job descriptions
 ├── server.js                    # Express server configuration
 └── package.json                 # Project dependencies
@@ -112,3 +105,18 @@ SIT725/
 Backend: The backend uses Socket.IO to emit a feedbackReady event to the frontend when the resume feedback is processed.
 
 Frontend: The frontend listens for the feedbackReady event and displays a notification to the user.
+
+
+### Authentication with Google OAuth 2.0
+
+This project includes Google OAuth 2.0 login using Passport.js Users can sign in securely using their Google account.
+
+- The "Continue with Google" button is dymanically changed to display "Welcome, ${name}"
+- The "Login" link in the navbar is replaced with a "Logout" link after login
+- Session handling is managed by Express-Session and Passport.js
+
+'''Required .env properties
+GOOGLE_CLIENT_ID=<your-google-client-id>
+GOOGLE_CLIENT_SECRET=<your-google-client-secret>
+MONGODB_URI=mongodb://localhost:27017/resume-portal
+'''

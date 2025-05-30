@@ -1,9 +1,13 @@
+import { io } from "https://cdn.socket.io/4.7.5/socket.io.esm.min.js";
 import { handleFileUpload } from "./upload.js";
 import { handleFeedback } from "./feedback.js";
 import { initializeChart } from "./chart.js";
 import { initializeNotifications } from "./notification.js";
 import { handleJobDescriptionUpload } from "./upload.js";
 import LoginManager from "./login.js";
+import { fetchUserSessions, displaySessions } from "./sessions.js";
+import { fetchJobDescriptions } from "./jdHistory.js";
+import { showToast } from "./toast.js";
 
 if (window._resumePortalLoaded) {
   console.warn("Resume Portal already loaded. Skipping...");
@@ -19,6 +23,24 @@ if (!window.loginManager) {
   window.loginManager = new LoginManager();
   console.log("Login manager initialized");
 }
+
+// Make deleteResume accessible to the frontend
+window.deleteResume = function (resumeId) {
+  fetch(`http://localhost:3002/api/resumes/${resumeId}`, {
+    method: "DELETE",
+    credentials: "include",
+  })
+    .then((response) => {
+      if (response.ok) {
+        showToast("Resume deleted successfully.", "success");
+        fetchResumes(); // Refresh
+      }
+    })
+    .catch((err) => {
+      console.error("Error deleting resume:", err);
+      showToast("Error deleting resume.", "error");
+    });
+};
 
 // Function to fetch and display uploaded resumes
 function fetchResumes() {
@@ -58,22 +80,6 @@ function fetchResumes() {
     .catch((err) => console.error("Error fetching resumes:", err));
 }
 
-// Function to delete a resume
-function deleteResume(resumeId) {
-  fetch(`http://localhost:3002/api/resumes/${resumeId}`, {
-    method: "DELETE", // Use DELETE method to delete the resume
-  })
-    .then((response) => {
-      if (response.ok) {
-        alert("Resume deleted successfully");
-        fetchResumes(); // Re-fetch the list after deletion
-      } else {
-        alert("Error deleting resume");
-      }
-    })
-    .catch((err) => console.error("Error deleting resume:", err));
-}
-
 // Function to check if the user is logged in (using localStorage as an example)
 function checkIfLoggedIn() {
   // Check for user login status (can be replaced with session cookies or token validation)
@@ -81,26 +87,51 @@ function checkIfLoggedIn() {
 }
 
 // Function to show or hide login/logout links based on login status
-function updateLoginLogoutLinks() {
+function updateLoginLogoutLinks(name = "") {
+  const loginLink = document.getElementById("loginLink");
+  const logoutLink = document.getElementById("logoutLink");
+  const userName = document.getElementById("userName");
+
   const isLoggedIn = checkIfLoggedIn();
 
   if (isLoggedIn) {
-    document.getElementById("loginLink").style.display = "none"; // Hide Login link
-    document.getElementById("loginLink").style.display = "none"; // Hide Login link
-    document.getElementById("logoutLink").style.display = "block"; // Show Logout link
+    if (loginLink) loginLink.classList.add("d-none");
+    if (logoutLink) logoutLink.classList.remove("d-none");
+    if (userName) userName.textContent = name || "User";
   } else {
-    document.getElementById("loginLink").style.display = "block"; // Show Login link
-    document.getElementById("logoutLink").style.display = "none"; // Hide Logout link
-    document.getElementById("loginLink").style.display = "block"; // Show Login link
-    document.getElementById("logoutLink").style.display = "none"; // Hide Logout link
+    if (loginLink) loginLink.classList.remove("d-none");
+    if (logoutLink) logoutLink.classList.add("d-none");
+    if (userName) userName.textContent = "";
   }
 }
 
-// Function to handle user logout
 function logoutUser() {
-  // Clear the login status and redirect to homepage
-  localStorage.setItem("isLoggedIn", "false"); // Example of logging out
-  window.location.href = "/"; // Redirect to homepage after logout
+  fetch("/auth/logout", {
+    method: "GET",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+    },
+  })
+    .then((res) => {
+      const contentType = res.headers.get("content-type");
+      if (res.ok && contentType && contentType.includes("application/json")) {
+        return res.json();
+      }
+      throw new Error("Unexpected response format");
+    })
+    .then((data) => {
+      if (data.success) {
+        localStorage.setItem("isLoggedIn", "false");
+        window.location.href = "/";
+      } else {
+        showToast("Logout failed. Please try again", "error");
+      }
+    })
+    .catch((err) => {
+      console.error("Logout error:", err);
+      showToast("Logout failed. Please try again", "error");
+    });
 }
 
 // Function to handle PDF Download
@@ -111,7 +142,7 @@ async function handleDownloadPdf() {
     !feedbackContainer ||
     !document.getElementById("feedbackResult").innerHTML.trim()
   ) {
-    alert("No feedback to export!");
+    showToast("No feedback to export!", "error");
     return;
   }
 
@@ -143,7 +174,7 @@ async function handleDownloadPdf() {
     pdf.save("ResumeFeedback.pdf");
   } catch (err) {
     console.error("Error generating PDF:", err);
-    alert("An error occured while generating the PDF");
+    showToast("An error occured while generating the PDF", "error");
   }
 }
 
@@ -157,6 +188,7 @@ document.addEventListener("DOMContentLoaded", () => {
   handleFeedback();
   initializeNotifications();
   handleJobDescriptionUpload();
+  fetchJobDescriptions();
 
   // Load Navbar
   if (!navbarLoaded) {
@@ -164,8 +196,27 @@ document.addEventListener("DOMContentLoaded", () => {
       .then((response) => response.text())
       .then((html) => {
         document.getElementById("navbar").innerHTML = html;
-        navbarLoaded = true; // Mark as loaded
-        updateLoginLogoutLinks(); // Update login/logout links based on login status
+        navbarLoaded = true;
+
+        requestAnimationFrame(() => {
+          fetch("/auth/user")
+            .then((res) => res.json())
+            .then((data) => {
+              localStorage.setItem(
+                "isLoggedIn",
+                data.loggedIn ? "true" : "false"
+              );
+              updateLoginLogoutLinks(data.name || "User");
+
+              const logoutBtn = document.getElementById("logoutBtn");
+              if (logoutBtn) {
+                logoutBtn.addEventListener("click", (e) => {
+                  e.preventDefault();
+                  logoutUser();
+                });
+              }
+            });
+        });
         window.loginManager = new LoginManager();
       })
       .catch((err) => console.error("Error loading navbar:", err));
@@ -208,4 +259,68 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     observer.observe(feedbackResult, { childList: true, subtree: true });
   }
+});
+
+// Function to load and display user sessions
+async function loadUserSessions() {
+  try {
+    const sessions = await fetchUserSessions();
+    displaySessions(sessions);
+  } catch (error) {
+    console.error("Error loading sessions:", error);
+  }
+}
+
+// Call this when the page loads or when you want to refresh the sessions
+document.addEventListener("DOMContentLoaded", loadUserSessions);
+
+document.addEventListener("DOMContentLoaded", () => {
+  const overlay = document.getElementById("authOverlay");
+
+  fetch("/auth/user")
+    .then((res) => res.json())
+    .then((data) => {
+      const isLoggedIn = data.loggedIn;
+
+      if (isLoggedIn) {
+        overlay.style.display = "none"; // Hide if logged in
+      } else {
+        overlay.style.display = "flex"; // Show overlay
+      }
+    });
+
+    let socket;
+
+document.addEventListener("DOMContentLoaded", () => {
+  // 👇 Socket connection
+  socket = io("http://localhost:3002", {
+    withCredentials: true,
+  });
+
+  // Fetch user info and register their socket
+  fetch("/api/user")
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.loggedIn && data.name) {
+        socket.emit("registerUser", data.id);
+      }
+    });
+
+  // 👂 Listen for feedback notifications
+  socket.on("feedbackReady", (payload) => {
+    // Replace alert with a toast later if needed
+    alert(payload.message || "Your resume feedback is ready!");
+  });
+});
+
+  // Handle 'Skip for now'
+  document.getElementById("skipBtn").addEventListener("click", () => {
+    overlay.style.display = "none";
+  });
+
+  // Handle 'Create with Email' - just redirect or open another modal
+  document.getElementById("createEmailBtn").addEventListener("click", () => {
+    alert("Feature coming soon!");
+    //showToast("Feature coming soon!", "info");
+  });
 });
